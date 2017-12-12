@@ -234,6 +234,15 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\ParticleSystems\Scripts\AfterburnerPhysicsForce.cs" />
+    <Compile Include="Assets\ParticleSystems\Scripts\ExplosionFireAndDebris.cs" />
+    <Compile Include="Assets\ParticleSystems\Scripts\ExplosionPhysicsForce.cs" />
+    <Compile Include="Assets\ParticleSystems\Scripts\Explosive.cs" />
+    <Compile Include="Assets\ParticleSystems\Scripts\ExtinguishableParticleSystem.cs" />
+    <Compile Include="Assets\ParticleSystems\Scripts\FireLight.cs" />
+    <Compile Include="Assets\ParticleSystems\Scripts\Hose.cs" />
+    <Compile Include="Assets\ParticleSystems\Scripts\ParticleSystemMultiplier.cs" />
+    <Compile Include="Assets\ParticleSystems\Scripts\SmokeParticles.cs" />
     <Compile Include="Assets\Scripts\GameManager.cs" />
     <Compile Include="Assets\Scripts\MatchSettings.cs" />
     <Compile Include="Assets\Scripts\Player.cs" />
@@ -242,8 +251,15 @@
     <Compile Include="Assets\Scripts\PlayerSetup.cs" />
     <Compile Include="Assets\Scripts\PlayerShoot.cs" />
     <Compile Include="Assets\Scripts\PlayerWeapon.cs" />
+    <Compile Include="Assets\Scripts\Util.cs" />
+    <Compile Include="Assets\Scripts\WeaponGraphics.cs" />
+    <Compile Include="Assets\Scripts\WeaponManager.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Assets\ParticleSystems\ParticleSystemsGuidelines.txt" />
+    <None Include="Assets\ParticleSystems\Shaders\PriorityParticleAdd.shader" />
+    <None Include="Assets\ParticleSystems\Shaders\PriorityParticleAddSoft.shader" />
+    <None Include="Assets\ParticleSystems\Shaders\PriorityParticleAlpha.shader" />
     <None Include="Assets\Standard Assets\CrossPlatformInput\CrossPlatformInputGuidelines.txt" />
     <None Include="Assets\Standard Assets\Prototyping\Shaders\WorldCoordDiffuse.shader" />
   </ItemGroup>
