@@ -2,6 +2,7 @@
 using UnityEngine.Networking;
 using System.Collections;
 
+[RequireComponent(typeof(PlayerSetup))]
 public class Player : NetworkBehaviour {
 
 	[SyncVar]
@@ -18,23 +19,58 @@ public class Player : NetworkBehaviour {
 	[SyncVar]
 	private int currentHealth;
 
+    [SerializeField]
+    private GameObject[] disableGameobjectsOnDeath;
+
 	//keep in mind: colliders components can't be stored as a behaviour
 	[SerializeField]
 	private Behaviour[] disableOnDeath;
 	private bool[] wasEnabled;
 
-	//replaces start methods so the player start
-	//function can be synced with the setup class
-	public void Setup(){
-		wasEnabled = new bool[disableOnDeath.Length];
+    [SerializeField]
+    private GameObject deathEffectPrefab;
+    [SerializeField]
+    private GameObject spawnEffectPrefab;
 
-		//recording which behaviours are enabled on the player form the start
-		for (int i = 0; i < wasEnabled.Length; i++) {
-			wasEnabled [i] = disableOnDeath [i].enabled;
-		}
+    public  bool firstSetup = true;
 
-		SetDefaults ();
+    //replaces start methods so the player start
+    //function can be synced with the setup class
+    public void SetupPlayer(){
+
+        //switch cameras and canvas
+        if (isLocalPlayer) {
+            GameManager.GetInstance().ToggleSceneCameraActive(false);
+            GetComponent<PlayerSetup>().playerUIInstance.SetActive(true);
+        }
+
+        CmdBroadcastNewPlayerSetup();
+
 	}
+
+    [Command]
+    private void CmdBroadcastNewPlayerSetup() {
+        RpcSetupPlayerOnAllClients();
+    }
+
+    [ClientRpc]
+    private void RpcSetupPlayerOnAllClients() {
+       
+
+        if (firstSetup == true) {
+            wasEnabled = new bool[disableOnDeath.Length];
+            //recording which behaviours are enabled on the player form the start
+            for (int i = 0; i < wasEnabled.Length; i++) {
+                wasEnabled[i] = disableOnDeath[i].enabled;
+            }
+
+            firstSetup = false;
+
+        }
+
+        SetDefaults();
+    }
+
 /* Debug: kill function*/
 	void Update(){
 		if (Input.GetKeyDown (KeyCode.K)) {
@@ -60,14 +96,30 @@ public class Player : NetworkBehaviour {
 	private void Die(){
 		isDead = true;
 
+        //disable components
 		for (int i = 0; i < disableOnDeath.Length; i++) {
 			disableOnDeath [i].enabled = false;
 		}
 
-		Collider col = GetComponent <Collider> ();
+        //disable Gameobjects
+        for (int i = 0; i < disableGameobjectsOnDeath.Length; i++) {
+            disableGameobjectsOnDeath[i].SetActive(false);
+        }
+
+        //disable the collider
+        Collider col = GetComponent <Collider> ();
 		if (col != null) {
 			col.enabled = false;
 		}
+
+        //spawn death effect
+        Destroy (Instantiate(deathEffectPrefab, transform.position, Quaternion.identity), 2f);
+
+        // switch camera to scene camera and toggle UI
+        if (isLocalPlayer) {
+            GameManager.GetInstance().ToggleSceneCameraActive(true);
+            GetComponent<PlayerSetup>().playerUIInstance.SetActive(false);
+        }
 
 		Debug.Log (transform.name + " is dead");
 
@@ -79,26 +131,43 @@ public class Player : NetworkBehaviour {
         float respawnTime = GameManager.GetInstance().matchSettings.respawnTime;
 		yield return new WaitForSeconds (respawnTime);
 
-		SetDefaults ();
 		Transform spawnPoint = NetworkManager.singleton.GetStartPosition ();
 		transform.position = spawnPoint.position;
 		transform.rotation = spawnPoint.rotation;
 
-		Debug.Log (transform.name + " respawned");
+        // making sure we move the player before instantiating particles: (hack)
+        yield return new WaitForSeconds(.1f);
+
+        SetupPlayer();
+
+        Debug.Log (transform.name + " respawned");
 	}
 
 	public void SetDefaults(){
 		isDead = false;
 		currentHealth = maxHealth;
+
+        //Debug.Log("Setting defaults");
+
+        //set components active
 		for (int i = 0; i < disableOnDeath.Length; i++) {
+        //    Debug.Log("Setting " + disableOnDeath[i] + ": " + wasEnabled[i]);
 			disableOnDeath [i].enabled = wasEnabled [i];
 		}
 
-		Collider col = GetComponent <Collider> ();
+        //enable disabled Gameobjects includeing player mesh
+        for (int i = 0; i < disableGameobjectsOnDeath.Length; i++) {
+            disableGameobjectsOnDeath[i].SetActive(true);
+        }
+
+        Collider col = GetComponent <Collider> ();
 		if (col != null) {
 			col.enabled = true;
 		}
 
-	}
+        //spawn effect
+        Destroy(Instantiate(spawnEffectPrefab, transform.position, Quaternion.identity), 2f);
+
+    }
 
 }

@@ -47,10 +47,43 @@ public class PlayerShoot : NetworkBehaviour {
         }
 	}
 
-	[Client] //local method: only called on client, never on server
+    //only being called from Shoot() by local player
+    [Command]
+    private void CmdOnShoot() {
+        RpcShootEffect();
+    }
+
+    //called on all clients when we need to do
+    //a shoot effect
+    [ClientRpc]
+    void RpcShootEffect() {
+        weaponManager.GetCurrentGraphics().muzzleFlash.Play();
+    }
+
+    //is called on server from Shoot() when the raycast hits,
+    // passing in its point and the normal of the surface.
+    [Command]
+    void CmdOnHit(Vector3 pos, Vector3 normal) {
+        RpcHitEffect(pos, normal);
+    }
+
+    //spawns in cool efects across all users on hit
+    [ClientRpc]
+    void RpcHitEffect(Vector3 pos, Vector3 normal) {
+
+        WeaponGraphics currentWeaponGraphics = weaponManager.GetCurrentGraphics();
+
+        GameObject impactEffect = Instantiate(currentWeaponGraphics.impactEffectPrefab, pos, Quaternion.LookRotation(normal));
+        Destroy(impactEffect, currentWeaponGraphics.impactEffectLiftime);
+    }
+
+    [Client] //local method: only called on client, never on server
 	private void Shoot(){
 
-        Debug.Log("SHOOT");
+        if (!isLocalPlayer)
+            return;
+
+        CmdOnShoot();
 
 		RaycastHit hit;
 
@@ -62,6 +95,10 @@ public class PlayerShoot : NetworkBehaviour {
 				GameObject playerHit = hit.collider.gameObject;
 				CmdPlayerIsShot(playerHit, currentWeapon.damage);
 			}
+
+            //makes on hit particles across the server
+            CmdOnHit(hit.point, hit.normal);
+
 		}
 	}
 

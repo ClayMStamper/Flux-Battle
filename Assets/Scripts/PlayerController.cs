@@ -13,7 +13,18 @@ public class PlayerController : MonoBehaviour {
 	[SerializeField]
 	private float thrusterForce = 1000f;
 
-   // private float blendValue = 0f;
+    [SerializeField]
+    private float thrusterFuelDrain = 1f;
+    [SerializeField]
+    private float thrusterFuelRegen = 0.3f;
+    private float thrusterFuelAmount = 1f;
+
+    public float GetThrusteFuelAmount() {
+        return thrusterFuelAmount;
+    }
+
+    [SerializeField]
+    private LayerMask environmentMask;
 
 	[Header("Spring Settings")]
 //	[SerializeField]
@@ -33,10 +44,21 @@ public class PlayerController : MonoBehaviour {
 		joint = GetComponent<ConfigurableJoint> ();
         animator = GetComponent<Animator>();
 
+        thrusterFuelAmount = 1f;
+
 		SetJointSettings (jointSpring);
 	}
 
 	void Update(){
+
+        //find ground plain to anchor character and setting spring position there
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position, Vector3.down, out hit, 100f, environmentMask)) {
+            joint.targetPosition = new Vector3(0f, -hit.point.y - 1f, 0f);
+        } else {
+            joint.targetPosition = new Vector3(0f, -1f, 0f);
+        }
+
 		//calculate movement velocity as a 3d vector
 		float xMov = Input.GetAxis("Horizontal");
 		float zMov = Input.GetAxis("Vertical");
@@ -72,15 +94,28 @@ public class PlayerController : MonoBehaviour {
 
 		//calculate thrust force
 		Vector3 newThrustForce = Vector3.zero;
-		if (Input.GetButton ("Jump")) {
-			newThrustForce = Vector3.up * thrusterForce;
-			SetJointSettings (0f); //to keep spring and thrust from applying together
+		if (Input.GetButton ("Jump") && thrusterFuelAmount > 0f) {
+
+            thrusterFuelAmount -= thrusterFuelDrain * Time.deltaTime;
+
+            if (thrusterFuelAmount >= .5f) {
+                newThrustForce = Vector3.up * thrusterForce;
+                SetJointSettings(0f); //to keep spring and thrust from applying together
+            }
+
 		} else {
+
+            thrusterFuelAmount += thrusterFuelRegen * Time.deltaTime;
+
 			SetJointSettings (jointSpring);
 		}
 
-		//apply thruster force
-		motor.ApplyThruster(newThrustForce);
+        thrusterFuelAmount = Mathf.Clamp(thrusterFuelAmount, 0, 1);
+
+        //apply thruster force
+        if (thrusterFuelAmount > 0.1f) {
+            motor.ApplyThruster(newThrustForce);
+        }
 	}
 
 	private void SetJointSettings(float newJointSpring){

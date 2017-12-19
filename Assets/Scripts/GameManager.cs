@@ -23,6 +23,16 @@ public class GameManager : MonoBehaviour {
 
     public MatchSettings matchSettings;
 
+    [SerializeField]
+    private GameObject sceneCamera;
+
+    public void ToggleSceneCameraActive(bool isActive) {
+        if (sceneCamera == null) {
+            return;
+        }
+
+        sceneCamera.SetActive(isActive);
+    }
 
     #region Player tracking
     private const string PLAYER_ID_PREFIX = "Player ";

@@ -3,6 +3,7 @@ using UnityEngine.Networking;
 
 // behaves as an object that is networked by extending networkBehaviour
 [RequireComponent(typeof(Player))]
+[RequireComponent(typeof(PlayerController))]
 public class PlayerSetup : NetworkBehaviour {
 
 	[SerializeField]
@@ -18,22 +19,24 @@ public class PlayerSetup : NetworkBehaviour {
 
     [SerializeField]
     GameObject playerUIPrefab;
-    private GameObject playerUIInstance;
+    [SerializeField]
+    GameObject matchmakingUIPrefab;
 
-	Camera sceneCamera;
+    [HideInInspector]
+    public GameObject playerUIInstance;
+    [HideInInspector]
+    public GameObject matchmakingUIInstance;
 
 	void Start(){
+
+        matchmakingUIInstance = GameObject.Find("Canvas");
+
 		// if isn't local player
 		if (!isLocalPlayer) {
 			//disable non-local player components
 			DisableComponents();
 			AssignRemoteLayer ();
 		} else {
-			//because we dont want each player disabling main camera, only local will
-			if (Camera.main != null) {
-				sceneCamera = Camera.main;
-				sceneCamera.gameObject.SetActive (false);
-			}
 
             //Disable local-player mesh graphics
             SetLayerRecursively(playerGraphics, LayerMask.NameToLayer(dontDrawLayerName));
@@ -42,10 +45,19 @@ public class PlayerSetup : NetworkBehaviour {
             playerUIInstance = Instantiate(playerUIPrefab) as GameObject;
             playerUIInstance.name = playerUIPrefab.name; // for a clean hierarchy
 
-		}
+            // destroy matchMakingUI
+            Destroy(matchmakingUIInstance);
 
-		//sets player defaults and records active components on player
-		GetComponent <Player> ().Setup ();
+            //configure PlayerUI
+            PlayerUI UI = playerUIInstance.GetComponent<PlayerUI>();
+            if (UI == null)
+                Debug.LogError("No player UI component on player UI prefab: " + playerUIPrefab);
+            UI.SetController(GetComponent <PlayerController>());
+
+            //sets player defaults and records active components on player
+            GetComponent<Player>().SetupPlayer();
+
+        }
 	}
 
     void SetLayerRecursively(GameObject obj, int newLayer) {
@@ -81,10 +93,13 @@ public class PlayerSetup : NetworkBehaviour {
 
         Destroy(playerUIInstance);
 
-		//re-enable scene camera
-		if (sceneCamera != null) {
-			sceneCamera.gameObject.SetActive (true);
-		}
+        //reactivate scene camera
+        if (isLocalPlayer)
+            GameManager.GetInstance().ToggleSceneCameraActive(true);
+
+        //instantiate matchMakingUI
+   //     matchmakingUIInstance = Instantiate(matchmakingUIPrefab);
+   //     matchmakingUIInstance.name = "Canvas";
 
 		//unregister player by netID (name)
 		GameManager.GetInstance().UnRegisterPlayer(transform.name);
